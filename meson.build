@@ -1,4 +1,4 @@
-project('xserver', 'c',
+project('xf86-video-pvrdri', 'c',
         default_options: [
             'buildtype=debugoptimized',
             'c_std=gnu99',
