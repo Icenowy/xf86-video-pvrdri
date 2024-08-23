@@ -36,6 +36,16 @@
 
 #include "dumb_bo.h"
 
+#ifdef MS_DRI3
+typedef Bool (*GetDrawableModifiersFuncPtr) (DrawablePtr draw, uint32_t format, uint32_t *num_modifiers, uint64_t **modifiers);
+# ifdef XSYNC
+#  include "misync.h"
+#  ifdef HAVE_XSHMFENCE
+#   include "misyncshm.h"
+#  endif
+# endif
+#endif
+
 struct gbm_device;
 
 enum drmmode_plane_property {
@@ -79,7 +89,7 @@ typedef struct {
     uint32_t width;
     uint32_t height;
     struct dumb_bo *dumb;
-#ifdef GLAMOR_HAS_GBM
+#if defined(GLAMOR_HAS_GBM) || defined(MS_DRI3)
     Bool used_modifiers;
     struct gbm_bo *gbm;
 #endif
@@ -135,6 +145,17 @@ typedef struct {
     Bool async_flip_secondaries;
     Bool dri2_enable;
     Bool present_enable;
+
+    /* bool flag to indicate if modesetting driver has enabled DRI3 support.
+     * Note: This only makes sense if glamor is disabled */
+    Bool dri3_enabled;
+#ifdef MS_DRI3
+    DestroyPixmapProcPtr destroy_pixmap;
+    GetDrawableModifiersFuncPtr get_drawable_modifiers;
+# ifdef XSYNC
+    SyncScreenFuncsRec sync_funcs;
+# endif
+#endif
 
     uint32_t vrr_prop_id;
     Bool use_ctm;
@@ -255,6 +276,12 @@ typedef struct _msPixmapPriv {
     PixmapDirtyUpdatePtr dirty; /* cached dirty ent to avoid searching list */
     DrawablePtr secondary_src; /* if we exported shared pixmap, dirty tracking src */
     Bool notify_on_damage; /* if sink has requested damage notification */
+
+#ifdef MS_DRI3
+    struct gbm_bo *bo;
+    void *bo_map;
+    Bool use_modifiers;
+#endif
 } msPixmapPrivRec, *msPixmapPrivPtr;
 
 #define msGetPixmapPriv(drmmode, p) ((msPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))

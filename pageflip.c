@@ -61,7 +61,7 @@ ms_flush_drm_events(ScreenPtr screen)
     return 1;
 }
 
-#ifdef GLAMOR_HAS_GBM
+#if defined(GLAMOR_HAS_GBM) || defined(MS_DRI3)
 
 /*
  * Event data for an in progress flip.
@@ -303,7 +303,7 @@ ms_do_pageflip(ScreenPtr screen,
                ms_pageflip_abort_proc pageflip_abort,
                const char *log_prefix)
 {
-#ifndef GLAMOR_HAS_GBM
+#if !defined(GLAMOR_HAS_GBM) && !defined(MS_DRI3)
     return FALSE;
 #else
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
@@ -313,9 +313,15 @@ ms_do_pageflip(ScreenPtr screen,
     uint32_t flags;
     int i;
     struct ms_flipdata *flipdata;
-    glamor_block_handler(screen);
 
-    new_front_bo.gbm = glamor_gbm_bo_from_pixmap(screen, new_front);
+    if (ms->drmmode.glamor) {
+        glamor_block_handler(screen);
+        new_front_bo.gbm = glamor_gbm_bo_from_pixmap(screen, new_front);
+    }
+# ifdef MS_DRI3
+    else if (ms->drmmode.dri3_enabled)
+        new_front_bo.gbm = ms_dri3_gbm_bo_from_pixmap(screen, new_front);
+# endif
     new_front_bo.dumb = NULL;
 
     if (!new_front_bo.gbm) {

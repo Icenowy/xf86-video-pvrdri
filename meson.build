@@ -15,6 +15,8 @@ pvrdri_srcs = [
     'pageflip.c',
     'present.c',
     'vblank.c',
+    'dri3.c',
+    'dri3_sync.c',
 ]
 
 libdrm_dep = dependency('libdrm', version: '>= 2.4.109')
@@ -32,6 +34,7 @@ pvrdri_c_args += '-DGLAMOR=1'
 pvrdri_c_args += '-DGLAMOR_HAS_GBM=1'
 pvrdri_c_args += '-DGLAMOR_HAS_GBM_LINEAR=1'
 pvrdri_c_args += '-DGBM_BO_WITH_MODIFIERS=1'
+pvrdri_c_args += '-DMS_DRI3=1'
 
 subdir('glamor')
 subdir('glamor_egl')
@@ -44,6 +47,7 @@ shared_module(
     dependencies: [
         libdrm_dep,
         xserver_dep,
+        epoxy_dep,
     ],
     c_args: pvrdri_c_args,
     link_with: [glamor, glamoregl],
