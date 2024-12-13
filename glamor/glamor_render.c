@@ -396,7 +396,7 @@ glamor_create_composite_shader(ScreenPtr screen, struct shader_key *key,
     glBindAttribLocation(prog, GLAMOR_VERTEX_SOURCE, "v_texcoord0");
     glBindAttribLocation(prog, GLAMOR_VERTEX_MASK, "v_texcoord1");
 
-    if (key->in == glamor_program_alpha_dual_blend) {
+    if (!glamor_priv->is_gles && key->in == glamor_program_alpha_dual_blend) {
         glBindFragDataLocationIndexed(prog, 0, 0, "color0");
         glBindFragDataLocationIndexed(prog, 0, 1, "color1");
     }
