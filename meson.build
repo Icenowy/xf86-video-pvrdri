@@ -22,7 +22,7 @@ pvrdri_srcs = [
 libdrm_dep = dependency('libdrm', version: '>= 2.4.109')
 xserver_dep = dependency('xorg-server', version: '>= 21.1')
 gbm_dep = dependency('gbm', version: '>= 17.1')
-epoxy_dep = dependency('gbm', version: '>= 1.5.4')
+epoxy_dep = dependency('epoxy', version: '>= 1.5.4')
 module_dir = xserver_dep.get_variable(pkgconfig : 'moduledir')
 
 pvrdri_c_args = []
