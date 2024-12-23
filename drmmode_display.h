@@ -131,8 +131,6 @@ typedef struct {
     /* Number of SW cursors currently visible on this screen */
     int sprites_visible;
 
-    Bool reverse_prime_offload_mode;
-
     Bool is_secondary;
 
     PixmapPtr fbcon_pixmap;

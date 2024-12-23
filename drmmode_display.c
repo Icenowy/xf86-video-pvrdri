@@ -635,13 +635,10 @@ drmmode_crtc_get_fb_id(xf86CrtcPtr crtc, uint32_t *fb_id, int *x, int *y)
     *fb_id = 0;
 
     if (drmmode_crtc->prime_pixmap) {
-        if (!drmmode->reverse_prime_offload_mode) {
-            msPixmapPrivPtr ppriv =
-                msGetPixmapPriv(drmmode, drmmode_crtc->prime_pixmap);
-            *fb_id = ppriv->fb_id;
-            *x = 0;
-        } else
-            *x = drmmode_crtc->prime_pixmap_x;
+        msPixmapPrivPtr ppriv =
+            msGetPixmapPriv(drmmode, drmmode_crtc->prime_pixmap);
+        *fb_id = ppriv->fb_id;
+        *x = 0;
         *y = 0;
     }
     else if (drmmode_crtc->rotate_fb_id) {
@@ -1785,64 +1782,6 @@ drmmode_crtc_gamma_set(xf86CrtcPtr crtc, uint16_t * red, uint16_t * green,
 }
 
 static Bool
-drmmode_set_target_scanout_pixmap_gpu(xf86CrtcPtr crtc, PixmapPtr ppix,
-                                      PixmapPtr *target)
-{
-    ScreenPtr screen = xf86ScrnToScreen(crtc->scrn);
-    PixmapPtr screenpix = screen->GetScreenPixmap(screen);
-    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
-    drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-    drmmode_ptr drmmode = drmmode_crtc->drmmode;
-    int c, total_width = 0, max_height = 0, this_x = 0;
-
-    if (*target) {
-        PixmapStopDirtyTracking(&(*target)->drawable, screenpix);
-        if (drmmode->fb_id) {
-            drmModeRmFB(drmmode->fd, drmmode->fb_id);
-            drmmode->fb_id = 0;
-        }
-        drmmode_crtc->prime_pixmap_x = 0;
-        *target = NULL;
-    }
-
-    if (!ppix)
-        return TRUE;
-
-    /* iterate over all the attached crtcs to work out the bounding box */
-    for (c = 0; c < xf86_config->num_crtc; c++) {
-        xf86CrtcPtr iter = xf86_config->crtc[c];
-        if (!iter->enabled && iter != crtc)
-            continue;
-        if (iter == crtc) {
-            this_x = total_width;
-            total_width += ppix->drawable.width;
-            if (max_height < ppix->drawable.height)
-                max_height = ppix->drawable.height;
-        } else {
-            total_width += iter->mode.HDisplay;
-            if (max_height < iter->mode.VDisplay)
-                max_height = iter->mode.VDisplay;
-        }
-    }
-
-    if (total_width != screenpix->drawable.width ||
-        max_height != screenpix->drawable.height) {
-
-        if (!drmmode_xf86crtc_resize(crtc->scrn, total_width, max_height))
-            return FALSE;
-
-        screenpix = screen->GetScreenPixmap(screen);
-        screen->width = screenpix->drawable.width = total_width;
-        screen->height = screenpix->drawable.height = max_height;
-    }
-    drmmode_crtc->prime_pixmap_x = this_x;
-    PixmapStartDirtyTracking(&ppix->drawable, screenpix, 0, 0, this_x, 0,
-                             RR_Rotate_0);
-    *target = ppix;
-    return TRUE;
-}
-
-static Bool
 drmmode_set_target_scanout_pixmap_cpu(xf86CrtcPtr crtc, PixmapPtr ppix,
                                       PixmapPtr *target)
 {
@@ -1892,13 +1831,7 @@ static Bool
 drmmode_set_target_scanout_pixmap(xf86CrtcPtr crtc, PixmapPtr ppix,
                                   PixmapPtr *target)
 {
-    drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-    drmmode_ptr drmmode = drmmode_crtc->drmmode;
-
-    if (drmmode->reverse_prime_offload_mode)
-        return drmmode_set_target_scanout_pixmap_gpu(crtc, ppix, target);
-    else
-        return drmmode_set_target_scanout_pixmap_cpu(crtc, ppix, target);
+    return drmmode_set_target_scanout_pixmap_cpu(crtc, ppix, target);
 }
 
 static Bool
