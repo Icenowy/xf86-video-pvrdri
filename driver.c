@@ -36,6 +36,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSproc.h"
@@ -170,12 +171,22 @@ static void *
 Setup(void *module, void *opts, int *errmaj, int *errmin)
 {
     static Bool setupDone = 0;
+    char *mesa_drv;
 
     /* This module should be loaded only once, but check to be sure.
      */
     if (!setupDone) {
         setupDone = 1;
         xf86AddDriver(&pvrdri, module, HaveDriverFuncs);
+
+        mesa_drv = getenv("MESA_LOADER_DRIVER_OVERRIDE");
+        if (mesa_drv && !strcmp(mesa_drv, "zink")) {
+            /*
+             * Running glamor with a forced Zink on PVR isn't economic.
+             */
+            unsetenv("MESA_LOADER_DRIVER_OVERRIDE");
+            xf86DrvMsg(-1, X_INFO, "Unsetting MESA_LOADER_DRIVER_OVERRIDE\n");
+        }
 
         /*
          * The return value must be non-NULL on success even though there
