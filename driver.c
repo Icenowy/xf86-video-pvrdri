@@ -748,7 +748,7 @@ msBlockHandler(ScreenPtr pScreen, void *timeout)
     pScreen->BlockHandler(pScreen, timeout);
     ms->BlockHandler = pScreen->BlockHandler;
     pScreen->BlockHandler = msBlockHandler;
-    if (pScreen->isGPU)
+    if (pScreen->isGPU && !ms->drmmode.reverse_prime_offload_mode)
         dispatch_secondary_dirty(pScreen);
     else if (ms->dirty_enabled)
         dispatch_dirty(pScreen);
@@ -1465,6 +1465,10 @@ msEnableSharedPixmapFlipping(RRCrtcPtr crtc, PixmapPtr front, PixmapPtr back)
     if (!ms->drmmode.pageflip)
         return FALSE;
 
+    /* Not currently supported with reverse PRIME */
+    if (ms->drmmode.reverse_prime_offload_mode)
+        return FALSE;
+
 #ifdef XSERVER_PLATFORM_BUS
     if (pEnt->location.type == BUS_PLATFORM) {
         char *syspath =
@@ -1708,10 +1712,28 @@ msSetSharedPixmapBacking(PixmapPtr ppix, void *fd_handle)
     int ihandle = (int) (long) fd_handle;
 
     if (ihandle == -1)
-       return drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, 0, 0);
+        if (!ms->drmmode.reverse_prime_offload_mode)
+           return drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, 0, 0);
 
-    int size = ppix->devKind * ppix->drawable.height;
-    ret = drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, ppix->devKind, size);
+    if (ms->drmmode.reverse_prime_offload_mode) {
+        if (ms->drmmode.glamor)
+            ret = glamor_back_pixmap_from_fd(ppix, ihandle,
+                                             ppix->drawable.width,
+                                             ppix->drawable.height,
+                                             ppix->devKind,
+                                             ppix->drawable.depth,
+                                             ppix->drawable.bitsPerPixel);
+	else if (ms->drmmode.dri3_enabled)
+            ret = ms_dri3_back_pixmap_from_fd(ppix, ihandle,
+                                             ppix->drawable.width,
+                                             ppix->drawable.height,
+                                             ppix->devKind,
+                                             ppix->drawable.depth,
+                                             ppix->drawable.bitsPerPixel);
+    } else {
+        int size = ppix->devKind * ppix->drawable.height;
+        ret = drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, ppix->devKind, size);
+    }
     if (ret == FALSE)
         return ret;
 
@@ -2016,6 +2038,35 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         }
     }
 #endif
+
+    /* enable reverse prime if we are a GPU screen, and accelerated, and not
+     * i915, evdi or udl. i915 is happy scanning out from sysmem.
+     * evdi and udl are virtual drivers scanning out from sysmem
+     * backed dumb buffers.
+     */
+    if (pScreen->isGPU) {
+       drmVersionPtr version;
+
+       /* enable if we are an accelerated GPU screen */
+       ms->drmmode.reverse_prime_offload_mode = TRUE;
+
+       if ((version = drmGetVersion(ms->drmmode.fd))) {
+          if (!strncmp("i915", version->name, version->name_len)) {
+             ms->drmmode.reverse_prime_offload_mode = FALSE;
+          }
+          if (!strncmp("evdi", version->name, version->name_len)) {
+             ms->drmmode.reverse_prime_offload_mode = FALSE;
+          }
+          if (!strncmp("udl", version->name, version->name_len)) {
+             ms->drmmode.reverse_prime_offload_mode = FALSE;
+          }
+          if (!ms->drmmode.reverse_prime_offload_mode) {
+             xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+                        "Disable reverse prime offload mode for %s.\n", version->name);
+          }
+          drmFreeVersion(version);
+       }
+    }
 
     if (!(ms->drmmode.present_enable = ms_present_screen_init(pScreen))) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
