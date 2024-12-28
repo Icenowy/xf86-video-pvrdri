@@ -45,5 +45,3 @@ struct glamor_context {
 
     void (*make_current)(struct glamor_context *glamor_ctx);
 };
-
-Bool glamor_glx_screen_init(struct glamor_context *glamor_ctx);

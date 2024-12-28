@@ -669,12 +669,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     /* If we are using egl screen, call egl screen init to
      * register correct close screen function. */
-    if (flags & GLAMOR_USE_EGL_SCREEN) {
-        glamor_egl_screen_init(screen, &glamor_priv->ctx);
-    } else {
-        if (!glamor_glx_screen_init(&glamor_priv->ctx))
-            goto fail;
-    }
+    glamor_egl_screen_init(screen, &glamor_priv->ctx);
 
     glamor_make_current(glamor_priv);
 
