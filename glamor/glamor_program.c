@@ -373,7 +373,7 @@ glamor_build_program(ScreenPtr          screen,
 #endif
         glBindAttribLocation(prog->prog, GLAMOR_VERTEX_SOURCE, prim->source_name);
     }
-    if (!glamor_priv->is_gles && prog->alpha == glamor_program_alpha_dual_blend) {
+    if (prog->alpha == glamor_program_alpha_dual_blend) {
         glBindFragDataLocationIndexed(prog->prog, 0, 0, "color0");
         glBindFragDataLocationIndexed(prog->prog, 0, 1, "color1");
     }
