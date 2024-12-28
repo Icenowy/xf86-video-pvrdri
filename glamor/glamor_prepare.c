@@ -125,12 +125,24 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
     RegionUninit(&region);
 
     if (priv->pbo) {
-        if (priv->map_access == GLAMOR_ACCESS_RW)
-            gl_access = GL_READ_WRITE;
-        else
-            gl_access = GL_READ_ONLY;
+        if (glamor_priv->is_gles) {
+            if (priv->map_access == GLAMOR_ACCESS_RW)
+                gl_access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
+            else
+                gl_access = GL_MAP_READ_BIT;
 
-        pixmap->devPrivate.ptr = glMapBuffer(GL_PIXEL_PACK_BUFFER, gl_access);
+            pixmap->devPrivate.ptr = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
+                                                      pixmap->devKind *
+                                                      pixmap->drawable.height,
+                                                      gl_access);
+        } else {
+            if (priv->map_access == GLAMOR_ACCESS_RW)
+                gl_access = GL_READ_WRITE;
+            else
+                gl_access = GL_READ_ONLY;
+
+            pixmap->devPrivate.ptr = glMapBuffer(GL_PIXEL_PACK_BUFFER, gl_access);
+	}
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     }
 
