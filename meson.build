@@ -8,7 +8,6 @@ project('xf86-video-pvrdri', 'c',
 )
 
 pvrdri_srcs = [
-    'dri2.c',
     'driver.c',
     'drmmode_display.c',
     'dumb_bo.c',

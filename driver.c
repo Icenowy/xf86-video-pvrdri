@@ -2014,15 +2014,6 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-#ifdef GLAMOR_HAS_GBM
-    if (ms->drmmode.glamor) {
-        if (!(ms->drmmode.dri2_enable = ms_dri2_screen_init(pScreen))) {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                       "Failed to initialize the DRI2 extension.\n");
-        }
-    }
-#endif
-
 #ifdef MS_DRI3
    /* Note: dri3_enabled is set in try_enable_dri3 function first. We reuse
     * the variable here checking the return of ms_dri3_screen_init so that we
@@ -2177,12 +2168,6 @@ CloseScreen(ScreenPtr pScreen)
 #ifdef MS_DRI3
    if (ms->drmmode.dri3_enabled)
      ms_dri3_sync_close(pScreen);
-#endif
-
-#ifdef GLAMOR_HAS_GBM
-    if (ms->drmmode.dri2_enable) {
-        ms_dri2_close_screen(pScreen);
-    }
 #endif
 
     ms_vblank_close_screen(pScreen);
