@@ -1,0 +1,14 @@
+# Put this configuration file to /{etc,usr/share}/X11/xorg.conf.d
+Section "OutputClass"
+	# Any
+        Identifier "foo"
+	# Match driver name shown in a kernel log line like below:
+	# [drm] Initialized foo 1.14.514 for display-device on minor 0
+	# Take the driver name from the word after Initialized.
+        MatchDriver "foo"
+        Driver "pvrdri"
+	# Necessary if any kernel DRM driver has bogus DRIVER_MODESET set
+	# e.g. unmodified pvrsrvkm driver.
+	# Shouldn't be harmful without this issue.
+        Option "PrimaryGPU" "true"
+EndSection
