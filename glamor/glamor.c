@@ -769,12 +769,10 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         epoxy_has_gl_extension("GL_ARB_instanced_arrays"))
         glamor_priv->use_gpu_shader4 = epoxy_has_gl_extension("GL_EXT_gpu_shader4");
 
-    /* XXX could still support GLES2 if we had GL_MESA_sampler_objects
-     * https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/2440
-     */
     if (!epoxy_has_gl_extension("GL_ARB_sampler_objects") &&
+	!epoxy_has_gl_extension("GL_MESA_sampler_objects") &&
         !(glamor_priv->is_gles && gl_version >= 30)) {
-        ErrorF("GL_ARB_sampler_objects required.\n");
+        ErrorF("GL_ARB_sampler_objects or GL_MESA_sampler_objects or GLES 3 required.\n");
         goto fail;
     }
 
